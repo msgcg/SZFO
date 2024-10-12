@@ -1,30 +1,67 @@
-﻿@model SZFO.Models.BookInputModel
+﻿@model SZFO.Book
 
 @{
-    ViewData["Title"] = "Добавить товар";
+    ViewBag.Title = "Add";
+    // Преобразуем динамические данные в SelectList
+    var categories = ViewBag.Okpd2Sections as SelectList;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Добавьте товар</h1>
-    <form asp-action="Add" method="post">
+<h2>Add</h2>
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <h4>Book</h4>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
         <div class="form-group">
-            <label for="code">Код товара:</label>
-            <input type="text" class="form-control" id="code" asp-for="Code" placeholder="Введите код товара" required>
+            @Html.LabelFor(model => model.Code, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Code, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Code, "", new { @class = "text-danger" })
+            </div>
         </div>
+
         <div class="form-group">
-            <label for="name">Имя товара:</label>
-            <input type="text" class="form-control" id="name" asp-for="Name" placeholder="Введите имя товара" required>
+            @Html.LabelFor(model => model.Name, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.Name, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.Name, "", new { @class = "text-danger" })
+            </div>
         </div>
+
         <div class="form-group">
-            <label for="razdel">Категория:</label>
-            <input type="text" class="form-control" id="razdel" asp-for="Razdel" placeholder="Введите категорию" required>
+            @Html.LabelFor(model => model.Category, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <!-- Преобразованные категории теперь можно использовать -->
+                @Html.DropDownListFor(model => model.Category, categories, "Выберите категорию", new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.Category, "", new { @class = "text-danger" })
+            </div>
         </div>
+
         <div class="form-group">
-            <label for="description">Описание:</label>
-            <textarea class="form-control" id="description" asp-for="FullDescription" placeholder="Введите описание товара" required></textarea>
+            @Html.LabelFor(model => model.FullDescription, htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.FullDescription, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.FullDescription, "", new { @class = "text-danger" })
+            </div>
         </div>
-        <br>
-        <button type="reset" class="btn btn-secondary">Сброс</button>
-        <button type="submit" class="btn btn-primary">Добавить</button>
-    </form>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Create" class="btn btn-default" />
+            </div>
+        </div>
+    </div>
+}
+
+<div>
+    @Html.ActionLink("Back to List", "Index")
 </div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}

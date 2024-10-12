@@ -29,5 +29,7 @@ namespace SZFO.Models
         {
             return new ApplicationDbContext();
         }
+
+        public System.Data.Entity.DbSet<SZFO.Book> Books { get; set; }
     }
 }
