@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Web.Mvc;
 using Newtonsoft.Json;
 using System.Web;
+using System.Diagnostics;
 
 namespace SZFO.Controllers
 {
@@ -65,7 +66,7 @@ namespace SZFO.Controllers
             // Если категория не указана, отправляем запрос к API
             if (string.IsNullOrEmpty(book.Category))
             {
-                try
+                //try
                 {
                     var category = await GetCategoryFromApi(book.Name);
                     if (!string.IsNullOrEmpty(category))
@@ -79,11 +80,11 @@ namespace SZFO.Controllers
                         book.Category = "Не указано";
                     }
                 }
-                catch (Exception ex)
+                /*catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine("Ошибка при запросе к API: " + ex.Message);
                     book.Category = "Ошибка при обращении к API";
-                }
+                }*/
 
             }
 
@@ -172,7 +173,8 @@ namespace SZFO.Controllers
                 client.DefaultRequestHeaders.Add("Authorization", "Token 7bca959b16a39757579b2242d4aa31d9c401ee7c"); // Вставьте ваш API токен
                 var response = await client.PostAsync("http://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/okpd2",
                     new StringContent(jsonQuery, Encoding.UTF8, "application/json"));
-                System.Diagnostics.Debug.WriteLine("попытка запроса к апи");
+                System.Diagnostics.Debug.WriteLine("Попытка запроса к API DaData");
+
                 if (response.IsSuccessStatusCode)
                 {
                     var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -187,14 +189,68 @@ namespace SZFO.Controllers
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("Категория не найдена");
+                        System.Diagnostics.Debug.WriteLine("API не вернуло значение");
                     }
-
                 }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"Ошибка при запросе к API DaData: {response.StatusCode}");
+                }
+            }
+
+            // Если DaData не нашел категорию, обращаемся к Python-скрипту
+            string aisug = await GetCategoryFromPython(productName);
+            if (!string.IsNullOrEmpty(aisug))
+            {
+                return aisug;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("Не удалось получить категорию от Python-скрипта");
             }
 
             return null; // Если ничего не найдено
         }
+
+
+
+        private async Task<string> GetCategoryFromPython(string productName)
+        {
+            string pythonExePath = @"C:\Users\maxxf\AppData\Local\Programs\Python\Python310\python.exe";
+            string fileName = @"C:\GPT.py";
+
+            Process p = new Process();
+            p.StartInfo = new ProcessStartInfo(pythonExePath, $"{fileName} \"{productName}\"")
+            {
+                RedirectStandardOutput = true, // Перенаправляем стандартный вывод
+                UseShellExecute = false, // Не используем оболочку для перенаправления
+                CreateNoWindow = true // Не создаем отдельное окно
+            };
+
+            StringBuilder outputBuilder = new StringBuilder(); // Для хранения вывода
+
+            // Обработка вывода по строкам
+            p.OutputDataReceived += (sender, args) =>
+            {
+                if (args.Data != null)
+                {
+                    Console.WriteLine(args.Data); // Печатаем вывод в консоль
+                    outputBuilder.AppendLine(args.Data); // Сохраняем вывод для возвращения
+                }
+            };
+
+            // Запускаем процесс
+            p.Start();
+            p.BeginOutputReadLine(); // Начинаем асинхронное чтение вывода
+
+            // Ожидаем завершения процесса
+            await Task.Run(() => p.WaitForExit());
+
+            return outputBuilder.ToString().Trim(); // Возвращаем вывод скрипта
+        }
+
+
+
 
         // Метод для чтения данных из файла Excel
         private List<Book> ReadBooksFromExcel(string filePath)
