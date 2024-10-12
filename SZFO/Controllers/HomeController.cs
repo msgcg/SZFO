@@ -369,7 +369,18 @@ namespace SZFO.Controllers
                 html.Append("<tr>");
                 html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{book.Code}</td>");
                 html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{book.Name}</td>");
-                html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{book.Category}</td>");
+
+                // Получаем категорию по коду из словаря
+                if (Okpd2Sections.TryGetValue(book.Category, out var categoryValue))
+                {
+                    html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{categoryValue}</td>");
+                }
+                else
+                {
+                    // Если категория не найдена, можно вывести какое-то значение по умолчанию
+                    html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{book.Category}</td>");
+                }
+
                 html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{book.FullDescription}</td>");
                 html.Append("</tr>");
             }
