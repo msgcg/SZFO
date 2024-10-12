@@ -1,6 +1,28 @@
 ﻿@model SZFO.Book
 
 @{
-    ViewBag.Title = "Каталог товаров";
+    ViewBag.Title = "Каталог";
 }
 
+<h2 style="color: #d52b1e;">Категории товаров:</h2>
+
+
+
+
+
+<!-- Кнопка для отображения всех товаров -->
+<button onclick="location.href='@Url.Action("Catalog", "Home")'" style="width: 100%; margin-bottom: 5px;">Все товары</button>
+
+<!-- Кнопки для категорий -->
+<div>
+    @foreach (var category in ViewBag.Categories)
+    {
+        <button onclick="location.href='@Url.Action("Catalog", "Home", new { selectedCategory = category.Key })'" style="width: 100%; margin-bottom: 5px;">
+            @category.Value
+        </button>
+    }
+</div>
+
+<div>
+    @Html.Raw(ViewBag.HtmlTable) <!-- Здесь выводим сгенерированную таблицу -->
+</div>

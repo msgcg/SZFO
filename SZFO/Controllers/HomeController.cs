@@ -9,6 +9,7 @@ using System.Web.Mvc;
 using Newtonsoft.Json;
 using System.Web;
 using System.Diagnostics;
+using System.Linq;
 
 namespace SZFO.Controllers
 {
@@ -47,6 +48,68 @@ namespace SZFO.Controllers
             var books = ReadBooksFromExcel(excelFilePath);
             return View(books);
         }
+        public ActionResult Catalog(string selectedCategory = null)
+        {
+            var categories = new List<KeyValuePair<string, string>>
+        {
+            new KeyValuePair<string, string>("A", "Продукция сельского, лесного и рыбного хозяйства"),
+            new KeyValuePair<string, string>("B", "Продукция горнодобывающих производств"),
+            new KeyValuePair<string, string>("C", "Продукция обрабатывающих производств"),
+            new KeyValuePair<string, string>("D", "Электроэнергия, газ, пар и кондиционирование воздуха"),
+            new KeyValuePair<string, string>("E", "Водоснабжение; водоотведение, услуги по удалению и рекультивации отходов"),
+            new KeyValuePair<string, string>("F", "Сооружения и строительные работы"),
+            new KeyValuePair<string, string>("G", "Услуги по оптовой и розничной торговле; услуги по ремонту автотранспортных средств и мотоциклов"),
+            new KeyValuePair<string, string>("H", "Услуги транспорта и складского хозяйства"),
+            new KeyValuePair<string, string>("I", "Услуги гостиничного хозяйства и общественного питания"),
+            new KeyValuePair<string, string>("J", "Услуги в области информации и связи"),
+            new KeyValuePair<string, string>("K", "Услуги финансовые и страховые"),
+            new KeyValuePair<string, string>("L", "Услуги, связанные с недвижимым имуществом"),
+            new KeyValuePair<string, string>("M", "Услуги, связанные с научной, инженерно-технической и профессиональной деятельностью"),
+            new KeyValuePair<string, string>("N", "Услуги административные и вспомогательные"),
+            new KeyValuePair<string, string>("O", "Услуги в сфере государственного управления и обеспечения военной безопасности; услуги по обязательному социальному обеспечению"),
+            new KeyValuePair<string, string>("P", "Услуги в области образования"),
+            new KeyValuePair<string, string>("Q", "Услуги в области здравоохранения и социальные услуги"),
+            new KeyValuePair<string, string>("R", "Услуги в области искусства, развлечений, отдыха и спорта"),
+            new KeyValuePair<string, string>("S", "Прочие услуги"),
+            new KeyValuePair<string, string>("T", "Товары и услуги различные, производимые домашними хозяйствами для собственного потребления"),
+            new KeyValuePair<string, string>("U", "Услуги, предоставляемые экстерриториальными организациями и органами")
+        };
+
+            var categoriesSet = new HashSet<string>(categories.Select(c => c.Key));
+
+            // Получаем товары из Excel
+            string excelFilePath = Server.MapPath("~/App_Data/Books.xlsx");
+            var books = ReadBooksFromExcel(excelFilePath);
+
+            // Собираем уникальные категории из товаров
+            var productCategories = books.Select(b => b.Category).Distinct().ToList();
+
+            // Проверяем, есть ли категория товара в предустановленных категориях, и добавляем новую если её нет
+            foreach (var productCategory in productCategories)
+            {
+                if (!categoriesSet.Contains(productCategory))
+                {
+                    categories.Add(new KeyValuePair<string, string>(productCategory, productCategory));
+                    categoriesSet.Add(productCategory); // добавляем новую категорию в набор
+                }
+            }
+
+            ViewBag.Categories = categories;
+
+            // Фильтруем книги по выбранной категории
+            if (!string.IsNullOrEmpty(selectedCategory))
+            {
+                books = books.Where(b => b.Category == selectedCategory).ToList();
+            }
+
+            // Генерируем HTML таблицу
+            string htmlTable = GenerateHtmlTable(books);
+
+            // Передаем сгенерированную таблицу в представление
+            ViewBag.HtmlTable = htmlTable;
+
+            return View();
+        }
 
         // Метод для отображения формы добавления книги (GET)
         [HttpGet]
@@ -71,8 +134,8 @@ namespace SZFO.Controllers
                     var category = await GetCategoryFromApi(book.Name);
                     if (!string.IsNullOrEmpty(category))
                     {
-                        System.Diagnostics.Debug.WriteLine("Категория найдена через API: " + category);
-                        book.Category = category;
+                        System.Diagnostics.Debug.WriteLine("Категория найдена через API: " + Okpd2Sections[category]);
+                        book.Category = Okpd2Sections[category];
                     }
                     else
                     {
@@ -216,7 +279,7 @@ namespace SZFO.Controllers
 
         private async Task<string> GetCategoryFromPython(string productName)
         {
-            string pythonExePath = @"C:\Users\maxxf\AppData\Local\Programs\Python\Python310\python.exe";
+            string pythonExePath = @"C:\Users\myton\AppData\Local\Programs\Python\Python310\python.exe";
             string fileName = @"C:\GPT.py";
 
             Process p = new Process();
@@ -283,6 +346,36 @@ namespace SZFO.Controllers
             }
 
             return books;
+        }
+
+        private string GenerateHtmlTable(List<Book> books)
+        {
+            var html = new System.Text.StringBuilder();
+
+            html.Append("<h2 style=\"color: #d52b1e;\">Каталог товаров:</h2>");
+            html.Append("<table style=\"width: 100%; border-collapse: collapse;\">");
+            html.Append("<thead>");
+            html.Append("<tr>");
+            html.Append("<th style=\"border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;\">Код</th>");
+            html.Append("<th style=\"border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;\">Название</th>");
+            html.Append("<th style=\"border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;\">Категория</th>");
+            html.Append("<th style=\"border: 1px solid #ddd; padding: 8px; background-color: #f2f2f2;\">Полное описание</th>");
+            html.Append("</tr>");
+            html.Append("</thead>");
+            html.Append("<tbody>");
+
+            foreach (var book in books)
+            {
+                html.Append("<tr>");
+                html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{book.Code}</td>");
+                html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{book.Name}</td>");
+                html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{book.Category}</td>");
+                html.Append($"<td style=\"border: 1px solid #ddd; padding: 8px;\">{book.FullDescription}</td>");
+                html.Append("</tr>");
+            }
+
+            html.Append("</tbody></table>");
+            return html.ToString();
         }
 
         // Метод для записи данных в файл Excel

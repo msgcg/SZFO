@@ -18,3 +18,24 @@ select,
 textarea {
     max-width: 280px;
 }
+.button-category {
+    display: inline-block; /* Для того чтобы кнопки отображались в строку */
+    width: 100px; /* Фиксированная ширина */
+    height: 100px; /* Фиксированная высота */
+    margin: 5px; /* Отступ между кнопками */
+    text-align: center; /* Выравнивание текста по центру */
+    vertical-align: middle; /* Вертикальное выравнивание текста */
+    background-color: #808080; /* Серый цвет фона */
+    color: white; /* Цвет текста */
+    text-decoration: none; /* Уберите подчеркивание */
+    border: none; /* Уберите границы */
+    border-radius: 0; /* Прямоугольные углы */
+    transition: background-color 0.3s; /* Плавный переход для цвета фона */
+    line-height: 100px; /* Вертикальное выравнивание текста */
+    overflow: hidden; /* Скрыть текст за пределами кнопки, если он не влезает */
+    font-size: 14px; /* Размер шрифта */
+}
+
+    .button-category:hover {
+        background-color: #666666; /* Более темный серый цвет при наведении */
+    }
