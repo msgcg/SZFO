@@ -2,8 +2,6 @@
 
 @{
     ViewBag.Title = "Add";
-    // Преобразуем динамические данные в SelectList
-    var categories = ViewBag.Okpd2Sections as SelectList;
 }
 
 <h2>Add</h2>
@@ -36,8 +34,7 @@
         <div class="form-group">
             @Html.LabelFor(model => model.Category, htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                <!-- Преобразованные категории теперь можно использовать -->
-                @Html.DropDownListFor(model => model.Category, categories, "Выберите категорию", new { @class = "form-control" })
+                @Html.DropDownListFor(model => model.Category, (SelectList)ViewBag.Categories, "Select Category", new { @class = "form-control" })
                 @Html.ValidationMessageFor(model => model.Category, "", new { @class = "text-danger" })
             </div>
         </div>
