@@ -10,11 +10,15 @@ using Newtonsoft.Json;
 using System.Web;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace SZFO.Controllers
 {
     public class HomeController : Controller
+
+
     {
+
         // Статический словарь категорий
         private static readonly Dictionary<string, string> Okpd2Sections = new Dictionary<string, string>
         {
@@ -121,7 +125,7 @@ namespace SZFO.Controllers
             ViewBag.Categories = new SelectList(Okpd2Sections, "Key", "Value");
             return View();
         }
-
+       
         // Метод для обработки формы добавления книги (POST)
         [HttpPost]
         public async Task<ActionResult> Add(Book book)
@@ -347,6 +351,7 @@ namespace SZFO.Controllers
 
             return books;
         }
+       
 
         private string GenerateHtmlTable(List<Book> books)
         {
@@ -415,7 +420,36 @@ namespace SZFO.Controllers
                 package.SaveAs(new FileInfo(filePath));
             }
         }
+       
+        
+        [HttpPost]
+        
+        public ActionResult Upload1(HttpPostedFileBase file)
+        {
+            if (file == null || file.ContentLength == 0)
+            {
+                return Content("Неверный файл.");
+            }
+
+            var filePath = Path.Combine(Path.GetTempPath(), file.FileName);
+            file.SaveAs(filePath); // Сохраняем файл
+
+            // Читаем книги из Excel
+            var books = ReadBooksFromExcel(filePath);
+            string excelFilePath = Server.MapPath("~/App_Data/Books.xlsx"); // Перемещаем сюда
+           
+            WriteBooksToExcel(excelFilePath,books);
+
+
+            //System.IO.File.Delete(filePath); // Удаляем файл после обработки
+
+            return View(books);
+        }
+
     }
+
+
+
 
     // Структура для десериализации ответа от API
     public class ApiResponse
