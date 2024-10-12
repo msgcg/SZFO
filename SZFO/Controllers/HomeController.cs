@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web.Mvc;
 using Newtonsoft.Json;
+using System.Web;
 
 namespace SZFO.Controllers
 {
@@ -99,7 +100,67 @@ namespace SZFO.Controllers
             ViewBag.Categories = new SelectList(Okpd2Sections, "Key", "Value");
             return View(book);
         }
+        // Метод для обработки загрузки CSV файла
+        [HttpPost]
+        public async Task<ActionResult> Upload(HttpPostedFileBase file)
+        {
+            if (file != null && file.ContentLength > 0)
+            {
+                string filePath2 = Path.Combine(Server.MapPath("~/App_Data/"), Path.GetFileName(file.FileName));
+                file.SaveAs(filePath2); // Сохраняем загруженный файл на сервере
 
+                var books = ReadBooksFromCsv(filePath2); // Читаем книги из CSV
+
+                foreach (var book in books)
+                {
+                    // Если категория не указана, отправляем запрос к API
+                    if (string.IsNullOrEmpty(book.Category))
+                    {
+                        var category = await GetCategoryFromApi(book.Name);
+                        book.Category = !string.IsNullOrEmpty(category) ? category : "Не указано";
+                    }
+                }
+
+                // Здесь можно передать книги в представление для дальнейшей обработки
+                return View("Add", books); // Переход на представление с данными книг
+            }
+
+            return RedirectToAction("Add");
+        }
+
+        // Метод для чтения данных из CSV
+        private List<Book> ReadBooksFromCsv(string filePath2)
+        {
+            var books = new List<Book>();
+
+            using (var reader = new StreamReader(filePath2))
+            {
+                bool isFirstRow = true;
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    var values = line.Split(';');
+
+                    if (isFirstRow) // Пропускаем первую строку с заголовками
+                    {
+                        isFirstRow = false;
+                        continue;
+                    }
+
+                    var book = new Book
+                    {
+                        Code = values[0],
+                        Name = values[1],
+                        Category = values.Length > 2 ? values[2] : string.Empty,
+                        FullDescription = values.Length > 3 ? values[3] : string.Empty
+                    };
+                    System.Diagnostics.Debug.WriteLine(book.Code+"-Code");
+                    books.Add(book);
+                }
+            }
+
+            return books;
+        }
         // Метод для получения категории из API
         private async Task<string> GetCategoryFromApi(string productName)
         {
