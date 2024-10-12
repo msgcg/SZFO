@@ -2,7 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 using System.Web.Mvc;
+using Newtonsoft.Json;
 
 namespace SZFO.Controllers
 {
@@ -33,6 +37,7 @@ namespace SZFO.Controllers
             { "T", "Товары и услуги различные, производимые домашними хозяйствами для собственного потребления" },
             { "U", "Услуги, предоставляемые экстерриториальными организациями и органами" }
         };
+
         // Метод для отображения всех книг (чтение из Excel)
         public ActionResult Index()
         {
@@ -54,8 +59,33 @@ namespace SZFO.Controllers
 
         // Метод для обработки формы добавления книги (POST)
         [HttpPost]
-        public ActionResult Add(Book book)
+        public async Task<ActionResult> Add(Book book)
         {
+            // Если категория не указана, отправляем запрос к API
+            if (string.IsNullOrEmpty(book.Category))
+            {
+                try
+                {
+                    var category = await GetCategoryFromApi(book.Name);
+                    if (!string.IsNullOrEmpty(category))
+                    {
+                        System.Diagnostics.Debug.WriteLine("Категория найдена через API: " + category);
+                        book.Category = category;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("API не вернул категорию.");
+                        book.Category = "Не указано";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine("Ошибка при запросе к API: " + ex.Message);
+                    book.Category = "Ошибка при обращении к API";
+                }
+
+            }
+
             if (ModelState.IsValid)
             {
                 string excelFilePath = Server.MapPath("~/App_Data/Books.xlsx");
@@ -70,6 +100,41 @@ namespace SZFO.Controllers
             return View(book);
         }
 
+        // Метод для получения категории из API
+        private async Task<string> GetCategoryFromApi(string productName)
+        {
+            var query = new { query = productName };
+            var jsonQuery = JsonConvert.SerializeObject(query);
+
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("Authorization", "Token 7bca959b16a39757579b2242d4aa31d9c401ee7c"); // Вставьте ваш API токен
+                var response = await client.PostAsync("http://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/okpd2",
+                    new StringContent(jsonQuery, Encoding.UTF8, "application/json"));
+                System.Diagnostics.Debug.WriteLine("попытка запроса к апи");
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonResponse = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine(jsonResponse);
+                    var suggestions = JsonConvert.DeserializeObject<ApiResponse>(jsonResponse);
+
+                    // Возвращаем первую найденную категорию
+                    if (suggestions != null && suggestions.Suggestions.Count > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Найдено: {suggestions.Suggestions[0].Data.Razdel}");
+                        return suggestions.Suggestions[0].Data.Razdel;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("Категория не найдена");
+                    }
+
+                }
+            }
+
+            return null; // Если ничего не найдено
+        }
+
         // Метод для чтения данных из файла Excel
         private List<Book> ReadBooksFromExcel(string filePath)
         {
@@ -82,6 +147,8 @@ namespace SZFO.Controllers
 
             using (var package = new ExcelPackage(new FileInfo(filePath)))
             {
+                // Задание контекста лицензии для EPPlus
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                 var worksheet = package.Workbook.Worksheets[0];
                 int rowCount = worksheet.Dimension.Rows; // Количество строк
 
@@ -127,6 +194,30 @@ namespace SZFO.Controllers
                 package.SaveAs(new FileInfo(filePath));
             }
         }
+    }
+
+    // Структура для десериализации ответа от API
+    public class ApiResponse
+    {
+        public List<Suggestion> Suggestions { get; set; }
+    }
+
+    public class Suggestion
+    {
+        public string Value { get; set; }
+        public Data Data { get; set; }
+    }
+
+    public class Data
+    {
+        [JsonProperty("razdel")] // Указываем имя поля из JSON
+        public string Razdel { get; set; } // Буква категории (например, "C")
+
+        [JsonProperty("kod")] // Указываем имя поля из JSON
+        public string Kod { get; set; } // Код категории (например, "30.20.20.112")
+
+        [JsonProperty("name")] // Указываем имя поля из JSON
+        public string Name { get; set; } // Имя категории (например, "Дизель-поезда")
     }
 
     // Модель книги
