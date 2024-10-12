@@ -1,0 +1,30 @@
+﻿@model SZFO.Models.BookInputModel
+
+@{
+    ViewData["Title"] = "Добавить товар";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Добавьте товар</h1>
+    <form asp-action="Add" method="post">
+        <div class="form-group">
+            <label for="code">Код товара:</label>
+            <input type="text" class="form-control" id="code" asp-for="Code" placeholder="Введите код товара" required>
+        </div>
+        <div class="form-group">
+            <label for="name">Имя товара:</label>
+            <input type="text" class="form-control" id="name" asp-for="Name" placeholder="Введите имя товара" required>
+        </div>
+        <div class="form-group">
+            <label for="razdel">Категория:</label>
+            <input type="text" class="form-control" id="razdel" asp-for="Razdel" placeholder="Введите категорию" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Описание:</label>
+            <textarea class="form-control" id="description" asp-for="FullDescription" placeholder="Введите описание товара" required></textarea>
+        </div>
+        <br>
+        <button type="reset" class="btn btn-secondary">Сброс</button>
+        <button type="submit" class="btn btn-primary">Добавить</button>
+    </form>
+</div>
