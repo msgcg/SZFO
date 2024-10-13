@@ -11,6 +11,7 @@ using System.Web;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
+using System.Linq.Expressions;
 
 namespace SZFO.Controllers
 {
@@ -138,8 +139,9 @@ namespace SZFO.Controllers
                     var category = await GetCategoryFromApi(book.Name);
                     if (!string.IsNullOrEmpty(category))
                     {
-                        System.Diagnostics.Debug.WriteLine("Категория найдена через API: " + Okpd2Sections[category]);
-                        book.Category = Okpd2Sections[category];
+                        System.Diagnostics.Debug.WriteLine("Категория найдена через API: " + category);
+                        try { book.Category = Okpd2Sections[category]; }
+                        catch (Exception) { System.Diagnostics.Debug.WriteLine("Категория найдена через ИИ: " + category); book.Category = category; };
                     }
                     else
                     {
@@ -283,7 +285,7 @@ namespace SZFO.Controllers
 
         private async Task<string> GetCategoryFromPython(string productName)
         {
-            string pythonExePath = @"C:\Users\myton\AppData\Local\Programs\Python\Python310\python.exe";
+            string pythonExePath = @"C:\Users\maxxf\AppData\Local\Programs\Python\Python310\python.exe";
             string fileName = @"C:\GPT.py";
 
             Process p = new Process();
@@ -474,7 +476,7 @@ namespace SZFO.Controllers
         [JsonProperty("name")] // Указываем имя поля из JSON
         public string Name { get; set; } // Имя категории (например, "Дизель-поезда")
     }
-
+     
     // Модель книги
     public class Book
     {
