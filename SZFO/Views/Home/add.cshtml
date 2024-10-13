@@ -11,7 +11,7 @@
     @Html.AntiForgeryToken()
 
 <div class="form-horizontal" style="background-color: white; color: gray;">
-  
+
     <hr />
     @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
@@ -47,25 +47,34 @@
         </div>
     </div>
 
-    <!-- Добавляем кнопку загрузки файла -->
-    <form asp-controller="Books" asp-action="Upload1" method="post" enctype="multipart/form-data">
-        <div class="form-group">
-            @Html.Label("Загрузить файл", htmlAttributes: new { @class = "control-label col-md-2" })
-            <div class="col-md-10">
+    <!-- Поле для выбора файла и кнопки для загрузки/обработки файла -->
+    <div class="form-group">
+        @Html.Label("Загрузить файл", htmlAttributes: new { @class = "control-label col-md-2" })
+        <div class="col-md-10">
+            <div class="input-group">
                 <input type="file" name="file" class="form-control" style="border-color: #d52b1e;" />
+                <div class="input-group-btn" style="margin-left: 10px;">
+                    <button type="submit" class="btn" formaction="@Url.Action("Upload", "Home")" formmethod="post" style="background-color: #d52b1e; color: white; margin-right: 10px;">
+                        - Загрузить
+                    </button>
+                    <input type="submit" value="Обработать файл" formaction="@Url.Action("ProcessFile", "Home")" formmethod="post" class="btn" style="background-color: #d52b1e; color: white;" />
+                </div>
             </div>
         </div>
-        
-    </form>
+    </div>
+
+
     <br>
+
     <div class="form-group">
         <div class="col-md-offset-2 col-md-10">
-            <input type="submit" value="Добавить" class="btn" style="background-color: #d52b1e; color: white;" />
+            <input type="submit" value="Добавить из текста" class="btn" style="background-color: #d52b1e; color: white;" />
         </div>
     </div>
 
 </div>
 }
+
 <br>
 <div>
     @Html.ActionLink("Вернуться", "Index", null, new { @class = "btn", style = "background-color: gray; color: white;" })

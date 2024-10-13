@@ -5,24 +5,25 @@ using System.Web;
 
 namespace SZFO
 {
-    using System.Data.Entity;
-
     public class Book
     {
-        public int Id { get; set; }
-        public string Code { get; set; }
-        public string Name { get; set; }
-        public string Category { get; set; }
-        public string FullDescription { get; set; }
-    }
+        public string Code { get; set; }  // Код книги
+        public string Name { get; set; }  // Название книги
+        public string Category { get; set; }  // Категория книги
+        public string FullDescription { get; set; }  // Полное описание книги
 
-    public class BooksContext : DbContext
-    {
-        public BooksContext() : base("BooksContext")
+        // Пустой конструктор
+        public Book()
         {
         }
 
-        public DbSet<Book> Books { get; set; }
+        // Конструктор с параметрами (если нужен)
+        public Book(string code, string name, string category, string fullDescription)
+        {
+            Code = code;
+            Name = name;
+            Category = category;
+            FullDescription = fullDescription;
+        }
     }
-
 }

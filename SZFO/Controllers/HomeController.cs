@@ -160,7 +160,10 @@ namespace SZFO.Controllers
             if (ModelState.IsValid)
             {
                 string excelFilePath = Server.MapPath("~/App_Data/Books.xlsx");
-                var books = ReadBooksFromExcel(excelFilePath); // Читаем существующие книги из Excel
+                var books = ReadBooksFromExcel(excelFilePath);
+                string temp = book.Category;
+                try { book.Category = Okpd2Sections[temp]; }
+                catch (Exception) { System.Diagnostics.Debug.WriteLine("Категория найдена через ИИ: " + temp); book.Category = temp; };// заполнение по словарю
                 books.Add(book); // Добавляем новую книгу
                 WriteBooksToExcel(excelFilePath, books); // Записываем обновленный список в Excel
                 return RedirectToAction("Index");
@@ -171,15 +174,75 @@ namespace SZFO.Controllers
             return View(book);
         }
         // Метод для обработки загрузки CSV файла
+        
         [HttpPost]
-        public async Task<ActionResult> Upload(HttpPostedFileBase file)
+        public ActionResult Upload(HttpPostedFileBase file)
         {
             if (file != null && file.ContentLength > 0)
             {
-                string filePath2 = Path.Combine(Server.MapPath("~/App_Data/"), Path.GetFileName(file.FileName));
-                file.SaveAs(filePath2); // Сохраняем загруженный файл на сервере
+                //FilePATH fp = new FilePATH();
+                // Сохраняем файл в папке App_Data
+                FilePATH.filePath = Path.Combine(Environment.CurrentDirectory, Path.GetFileName(file.FileName));
+                System.Diagnostics.Debug.WriteLine("Путь файла-"+ FilePATH.filePath);
+                file.SaveAs(FilePATH.filePath);
 
-                var books = ReadBooksFromCsv(filePath2); // Читаем книги из CSV
+                // Сохраняем путь к файлу в TempData, чтобы использовать его позже
+                //TempData["UploadedFilePath"] = filePath2;
+
+                ViewBag.Message = "Файл успешно загружен. Теперь вы можете обработать его.";
+            }
+            else
+            {
+                ViewBag.Message = "Файл не был загружен.";
+            }
+
+            return RedirectToAction("Add");
+        }
+
+        // Метод для чтения данных из CSV
+        
+        [HttpPost]
+
+        public async Task<ActionResult> ProcessFile()
+        {
+            //FilePATH fp = new FilePATH();
+            System.Diagnostics.Debug.WriteLine("Инициализирована обработки файла-" + FilePATH.filePath);
+            if (FilePATH.filePath != null)
+            {
+                // Сохраняем файл в папке App_Data
+                //string filePath2 = Path.Combine(Server.MapPath("~/App_Data/"), Path.GetFileName(file.FileName));
+                //file.SaveAs(filePath2);
+                System.Diagnostics.Debug.WriteLine("Запущена обработка файла-" + FilePATH.filePath);
+                var books = new List<Book>();
+
+                // Чтение данных из CSV и их обработка
+                using (var reader = new StreamReader(FilePATH.filePath, Encoding.UTF8))
+                {
+                    bool isFirstRow = true;
+
+                    while (!reader.EndOfStream)
+                    {
+                        var line = reader.ReadLine();
+                        var values = line.Split(';');
+
+                        if (isFirstRow) // Пропускаем первую строку с заголовками
+                        {
+                            isFirstRow = false;
+                            continue;
+                        }
+
+                        var book = new Book
+                        {
+                            Code = values[0],
+                            Name = values[1],
+                            Category = values[2],
+                            FullDescription = values[3]
+                        };
+
+                        books.Add(book);
+                        
+                    }
+                }
 
                 foreach (var book in books)
                 {
@@ -187,50 +250,36 @@ namespace SZFO.Controllers
                     if (string.IsNullOrEmpty(book.Category))
                     {
                         var category = await GetCategoryFromApi(book.Name);
-                        book.Category = !string.IsNullOrEmpty(category) ? category : "Не указано";
+                        if (!string.IsNullOrEmpty(category))
+                        {
+                            System.Diagnostics.Debug.WriteLine("Категория в файле найдена через API: " + category);
+                            try { book.Category = Okpd2Sections[category]; }
+                            catch (Exception) { System.Diagnostics.Debug.WriteLine("Категория в файле найдена через ИИ: " + category); book.Category = category; }
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("API не вернул категорию в файле.");
+                            book.Category = "в файле Не указано";
+                        }
+                    }
+
+                    // Здесь вы можете сохранить каждую книгу в Excel или в базу данных
+                    if (ModelState.IsValid)
+                    {
+                        string excelFilePath = Server.MapPath("~/App_Data/Books.xlsx");
+                        var existingBooks = ReadBooksFromExcel(excelFilePath); // Читаем существующие книги из Excel
+                        existingBooks.Add(book); // Добавляем новую книгу
+                        WriteBooksToExcel(excelFilePath, existingBooks);
+                        
                     }
                 }
-
-                // Здесь можно передать книги в представление для дальнейшей обработки
-                return View("Add", books); // Переход на представление с данными книг
+                return RedirectToAction("Index");// Записываем обновленный список в Excel
             }
 
+            ViewBag.Message = "Файл не был загружен.";
             return RedirectToAction("Add");
         }
 
-        // Метод для чтения данных из CSV
-        private List<Book> ReadBooksFromCsv(string filePath2)
-        {
-            var books = new List<Book>();
-
-            using (var reader = new StreamReader(filePath2))
-            {
-                bool isFirstRow = true;
-                while (!reader.EndOfStream)
-                {
-                    var line = reader.ReadLine();
-                    var values = line.Split(';');
-
-                    if (isFirstRow) // Пропускаем первую строку с заголовками
-                    {
-                        isFirstRow = false;
-                        continue;
-                    }
-
-                    var book = new Book
-                    {
-                        Code = values[0],
-                        Name = values[1],
-                        Category = values.Length > 2 ? values[2] : string.Empty,
-                        FullDescription = values.Length > 3 ? values[3] : string.Empty
-                    };
-                    System.Diagnostics.Debug.WriteLine(book.Code+"-Code");
-                    books.Add(book);
-                }
-            }
-
-            return books;
-        }
         // Метод для получения категории из API
         private async Task<string> GetCategoryFromApi(string productName)
         {
@@ -424,29 +473,6 @@ namespace SZFO.Controllers
         }
        
         
-        [HttpPost]
-        
-        public ActionResult Upload1(HttpPostedFileBase file)
-        {
-            if (file == null || file.ContentLength == 0)
-            {
-                return Content("Неверный файл.");
-            }
-
-            var filePath = Path.Combine(Path.GetTempPath(), file.FileName);
-            file.SaveAs(filePath); // Сохраняем файл
-
-            // Читаем книги из Excel
-            var books = ReadBooksFromExcel(filePath);
-            string excelFilePath = Server.MapPath("~/App_Data/Books.xlsx"); // Перемещаем сюда
-           
-            WriteBooksToExcel(excelFilePath,books);
-
-
-            //System.IO.File.Delete(filePath); // Удаляем файл после обработки
-
-            return View(books);
-        }
 
     }
 
@@ -477,12 +503,5 @@ namespace SZFO.Controllers
         public string Name { get; set; } // Имя категории (например, "Дизель-поезда")
     }
      
-    // Модель книги
-    public class Book
-    {
-        public string Code { get; set; }
-        public string Name { get; set; }
-        public string Category { get; set; }
-        public string FullDescription { get; set; }
-    }
+    
 }
